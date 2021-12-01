@@ -1,0 +1,50 @@
+{
+  "name": "test-network-org-<%= networkName %>",
+  "description": "Connection profile for <%= org.name %> in Fablo network",
+  "version": "1.0",
+  "client": {
+    "organization": "<%= org.name %>"
+  },
+  "organizations": {
+    "<%= org.name %>": {
+      "mspid": "<%= org.mspName %>",
+      "peers" : [
+        
+
+        <%_ orgs.forEach(function(o){ _%>
+          <%_ o.anchorPeers.forEach(function(peer){ _%>
+          "<%= peer.address %>",
+          <%_ }) _%>
+        <%_ }) _%>
+      ],
+      "certificateAuthorities": ["<%= org.ca.address %>"]
+    }
+  },
+  "peers": {
+    <%_ orgs.forEach(function(o){ _%>
+    <%_ o.anchorPeers.forEach(function(peer){ _%>
+      "<%= peer.address %>": {
+        "url": "grpcs://localhost:<%= peer.port %>",
+        "tlsCACerts": {
+          "path": "<%= networkRootPath %>/fablo-target/fabric-config/crypto-config/peerOrganizations/<%= o.domain %>/peers/<%= peer.address %>/tls/ca.crt"
+        },
+        "grpcOptions": {
+          "ssl-target-name-override": "<%= peer.address %>",
+        }
+      },
+    <%_ }) _%>
+    <%_ }) _%>
+  },
+  "certificateAuthorities": {
+    "<%= org.ca.address %>": {
+      "url": "http://localhost:<%= org.ca.exposePort %>",
+      "caName": "<%= org.ca.address %>",
+      "tlsCACerts": {
+        "path": "<%= networkRootPath %>/fablo-target/fabric-config/crypto-config/peerOrganizations/<%= org.domain %>/ca/<%= org.ca.address %>-cert.pem"
+      },
+      "httpOptions": {
+        "verify": false
+      }
+    }
+  }
+}

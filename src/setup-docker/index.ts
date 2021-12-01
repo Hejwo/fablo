@@ -11,6 +11,7 @@ import {
   OrgConfig,
 } from "../types/FabloConfigExtended";
 import { extendConfig } from "../extend-config/";
+import { createConnectionProfile } from "../types/ConnectionProfile";
 
 const ValidateGeneratorPath = require.resolve("../validate");
 
@@ -45,6 +46,7 @@ export default class SetupDockerGenerator extends Generator {
 
     // ======= fabric-config ============================================================
     this._copyOrgCryptoConfig(orgs);
+    this._createConnectionProfiles(composeNetworkName, networkSettings, orgs);
     this._copyConfigTx(config);
     this._copyGitIgnore();
     this._createPrivateDataCollectionConfigs(chaincodes);
@@ -85,6 +87,33 @@ export default class SetupDockerGenerator extends Generator {
         this.templatePath("fabric-config/crypto-config-org.yaml"),
         this.destinationPath(`fabric-config/${orgTransformed.cryptoConfigFileName}.yaml`),
         { org: orgTransformed },
+      );
+    });
+  }
+
+  _createConnectionProfiles(networkName: string, networkSettings: NetworkSettings, orgsTransformed: OrgConfig[]): void {
+    orgsTransformed.forEach((org: OrgConfig) => {
+      this.fs.writeJSON(
+        this.destinationPath(`fabric-config/connection-profile-${org.name.toLowerCase()}.json`),
+        createConnectionProfile(networkName, networkSettings, org, orgsTransformed),
+      );
+    });
+
+    const allAnchorPeers = orgsTransformed.flatMap((o) => o.anchorPeers);
+    orgsTransformed.forEach((orgTransformed) => {
+      const connectionProfileName = `${orgTransformed.name.toLowerCase()}`;
+      const context = {
+        networkName: networkName,
+        org: orgTransformed,
+        orgs: orgsTransformed,
+        name: orgTransformed.name.toLowerCase(),
+        anchorPeers: allAnchorPeers,
+        networkRootPath: networkSettings.paths.chaincodesBaseDir,
+      };
+      this.fs.copyTpl(
+        this.templatePath("fabric-config/connection-profile-org-template.json"),
+        this.destinationPath(`fabric-config/connection-profile-${connectionProfileName}-tpl.json`),
+        context,
       );
     });
   }
